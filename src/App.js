@@ -1,45 +1,43 @@
-import React, { useState, useEffect } from 'react'
-import { ActionCable } from 'actioncable'
+import React from 'react';
+import ActionCable from 'actioncable';
 
-const App = () => {
-
-  const [messages, setMessages] = useState([])
-  const [cable, setCable] = useState
-
-  useEffect(() => {
-    createCable()
-    fetchMessages()
-    createSubscription()
-  }, [])
-
-
-  const createCable = () => {
-    setCable(ActionCable.createConsumer('ws://localhost:3000/cable'))
+class App extends React.Component {
+  constructor() {
+    super()
+    this.state = {
+      messages: []
+    }
+    this.cable = ActionCable.createConsumer('ws://localhost:3000/cable')
   }
 
-  const fetchMessages = () => {
+  componentDidMount() {
+    this.fetchMessages()
+    this.createSubscription()
+  }
+
+  fetchMessages = () => {
     fetch('http://localhost:3000/messages')
       .then(res => res.json())
-      .then(messages => setMessages({ messages: messages }))
+      .then(messages => this.setState({ messages: messages }))
   }
 
-  const createSubscription = () => {
-    cable.subscriptions.create(
+  createSubscription = () => {
+    this.cable.subscriptions.create(
       { channel: 'MessagesChannel' },
-      { received: message => handleReceivedMessage(message) }
+      { received: message => this.handleReceivedMessage(message) }
     )
   }
 
-  const mapMessages = () => {
-    return messages.map((message, i) => 
+  mapMessages = () => {
+    return this.state.messages.map((message, i) => 
       <li key={i}>{message.content}</li>)
   }
 
-  const handleReceivedMessage = message => {
-    setMessages({ messages: [...messages, message] })
+  handleReceivedMessage = message => {
+    this.setState({ messages: [...this.state.messages, message] })
   }
 
-  const handleMessageSubmit = e => {
+  handleMessageSubmit = e => {
     e.preventDefault();
     const messageObj = {
       message: {
@@ -57,22 +55,22 @@ const App = () => {
     e.target.reset()
   }
 
-  return (
-    <div>
-      <ActionCable 
+  render() {
+    return (
+      <div className='App'>
+        <ActionCable 
           channel={{ channel: 'MessagesChannel' }}
-          onReceived={() => handleReceivedMessage()}
+          onReceived={this.handleReceivedMessages}
         />
         <h2>Messages</h2>
-
-        <ul>{() => mapMessages()}</ul>
-
-        <form onSubmit={() => handleMessageSubmit()}>
+        <ul>{this.mapMessages()}</ul>
+        <form>
           <input name='message' type='text' />
           <input type='submit' value='Send message' />
         </form>
-    </div>
-  )
+      </div>
+    );
+  }
 }
 
-export default App
+export default App;
